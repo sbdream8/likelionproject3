@@ -1,95 +1,159 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
 
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+ import { gql, useQuery, useMutation } from "@apollo/client";
+ import { useState } from "react";
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
-}
+ const ALL_USERS = gql`
+ query {
+ allUsers {
+     id
+     firstName
+     lastName
+     fullName
+     }
+ }`;
+
+ const CREATE_USER = gql`
+ mutation CreateUser($firstName: String!, $lastName: String!) {
+     createUser(firstName: $firstName, lastName: $lastName) {
+     id
+     firstName
+     lastName
+     fullName
+     }
+ }`;
+
+ export default function Page() {
+     const { loading, error, data, refetch } = useQuery(ALL_USERS);
+     const [createUser] = useMutation(CREATE_USER);
+
+     const [formData, setFormData] = useState({
+         firstName: "",
+         lastName: "",
+     });
+
+     const handleInputChange = (e) => {
+         const { name, value } = e.target;
+         setFormData((prev) => ({
+         ...prev,
+         [name]: value,
+         }));
+     };
+
+     const handleSubmit = async (e) => {
+         e.preventDefault();
+         try {
+         await createUser({
+             variables: {
+             firstName: formData.firstName,
+             lastName: formData.lastName,
+             },
+         });
+         setFormData({ firstName: "", lastName: "" }); // Clear the form
+         refetch(); // Refresh the list of users
+         } catch (err) {
+         console.error("Error creating user:", err);
+         }
+     };
+
+     if (loading) return <p style={{ textAlign: "center" }}>Loading...</p>;
+     if (error)
+         return (
+         <p style={{ textAlign: "center", color: "red" }}>
+             Error: {error.message}
+         </p>
+         );
+
+     return (
+         <div
+         style={{
+             maxWidth: "600px",
+             margin: "20px auto",
+             fontFamily: "Arial, sans-serif",
+         }}
+         >
+         <h1 style={{ textAlign: "center" }}>Users</h1>
+         <ul style={{ listStyleType: "none", padding: 0 }}>
+             {data.allUsers.map((user) => (
+             <li
+                 key={user.id}
+                 style={{
+                 padding: "10px",
+                 border: "1px solid #ddd",
+                 borderRadius: "5px",
+                 marginBottom: "10px",
+                 }}
+             >
+                 {user.fullName}
+             </li>
+             ))}
+         </ul>
+         <h2 style={{ textAlign: "center" }}>Create a New User</h2>
+         <form
+             onSubmit={handleSubmit}
+             style={{
+             display: "flex",
+             flexDirection: "column",
+             gap: "10px",
+             padding: "20px",
+             border: "1px solid #ddd",
+             borderRadius: "5px",
+             background: "#f9f9f9",
+             }}
+         >
+             <div>
+             <label style={{ display: "block", marginBottom: "5px" }}>
+                 First Name:
+                 <input
+                 type="text"
+                 name="firstName"
+                 value={formData.firstName}
+                 onChange={handleInputChange}
+                 required
+                 style={{
+                     width: "100%",
+                     padding: "8px",
+                     border: "1px solid #ddd",
+                     borderRadius: "5px",
+                     marginTop: "5px",
+                 }}
+                 />
+             </label>
+             </div>
+             <div>
+             <label style={{ display: "block", marginBottom: "5px" }}>
+                 Last Name:
+                 <input
+                 type="text"
+                 name="lastName"
+                 value={formData.lastName}
+                 onChange={handleInputChange}
+                 required
+                 style={{
+                     width: "100%",
+                     padding: "8px",
+                     border: "1px solid #ddd",
+                     borderRadius: "5px",
+                     marginTop: "5px",
+                 }}
+                 />
+             </label>
+             </div>
+             <button
+             type="submit"
+             style={{
+                 padding: "10px",
+                 backgroundColor: "#007BFF",
+                 color: "white",
+                 border: "none",
+                 borderRadius: "5px",
+                 cursor: "pointer",
+                 fontWeight: "bold",
+             }}
+             >
+             Add User
+             </button>
+         </form>
+         </div>
+     );
+ }
